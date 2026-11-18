@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>기사 프로젝트 노트</title>
+<style>
+  :root{
+    --bg:#ffffff; --text:#37352f; --sub:#787774; --line:#e9e9e7;
+    --soft:#f7f6f3; --accent:#2383e2; --accent-soft:#e7f3f8;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;
+    font-size:17px; line-height:1.7;
+  }
+  .page{max-width:720px; margin:0 auto; padding:40px 20px 80px}
+  h1{font-size:2rem; margin:0 0 6px; line-height:1.3}
+  .meta{color:var(--sub); font-size:.9rem; margin-bottom:32px}
+  section{margin-bottom:36px}
+  h2{
+    font-size:1.1rem; margin:0 0 10px; padding-bottom:6px;
+    border-bottom:1px solid var(--line);
+  }
+  input[type=text], textarea{
+    width:100%; font:inherit; color:inherit;
+    border:1px solid var(--line); border-radius:6px;
+    padding:10px 12px; background:#fff;
+  }
+  input[type=text]:focus, textarea:focus{outline:2px solid var(--accent); border-color:transparent}
+  .topic{
+    display:inline-block; background:var(--accent-soft);
+    padding:6px 16px; border-radius:6px; font-weight:700;
+  }
+  .check{display:flex; align-items:center; gap:12px; margin-bottom:8px}
+  .check input[type=checkbox]{width:24px; height:24px; flex:none; accent-color:var(--accent)}
+  .check input[type=text]{flex:1}
+  .check.done input[type=text]{color:var(--sub); text-decoration:line-through}
+  .log{
+    background:var(--soft); border-radius:8px; padding:12px 14px; margin-bottom:10px;
+  }
+  .log .date{font-weight:700; margin-bottom:6px; color:var(--accent)}
+  button{
+    font:inherit; background:var(--soft); border:1px solid var(--line);
+    border-radius:6px; padding:10px 16px; cursor:pointer; color:var(--text);
+  }
+  button:hover{background:var(--line)}
+  @media print{ button{display:none} }
+</style>
+</head>
+<body>
+<main class="page">
+  <h1>기사 프로젝트 노트</h1>
+  <div class="meta">입력한 내용은 이 기기의 브라우저에 자동 저장됩니다.</div>
+
+  <section>
+    <h2>프로젝트 한 줄</h2>
+    <input type="text" id="brief" data-save="brief" placeholder="브리프 한 줄을 적어 주세요">
+  </section>
+
+  <section>
+    <h2>주제</h2>
+    <span class="topic">경제</span>
+  </section>
+
+  <section>
+    <h2>할 일 체크리스트</h2>
+    <div id="todos"></div>
+  </section>
+
+  <section>
+    <h2>날짜별 기록</h2>
+    <div id="logs"></div>
+    <button type="button" id="addLog">+ 다음 날짜 추가</button>
+  </section>
+</main>
+
+<script>
+(function(){
+  var KEY = "article-project-note-v1";
+  var state = {brief:"", todos:[], logs:[]};
+
+  try { var s = localStorage.getItem(KEY); if (s) state = JSON.parse(s); } catch(e){}
+  while (state.todos.length < 5) state.todos.push({t:"", d:false});
+  state.todos = state.todos.slice(0,5);
+  if (!state.logs.length) state.logs.push({date:"11/18", text:""});
+
+  function save(){ try { localStorage.setItem(KEY, JSON.stringify(state)); } catch(e){} }
+
+  var brief = document.getElementById("brief");
+  brief.value = state.brief || "";
+  brief.addEventListener("input", function(){ state.brief = brief.value; save(); });
+
+  var todosEl = document.getElementById("todos");
+  state.todos.forEach(function(item, i){
+    var row = document.createElement("div");
+    row.className = "check" + (item.d ? " done" : "");
+    var cb = document.createElement("input");
+    cb.type = "checkbox"; cb.checked = !!item.d;
+    cb.setAttribute("aria-label", "할 일 " + (i+1) + " 완료");
+    var tx = document.createElement("input");
+    tx.type = "text"; tx.value = item.t || ""; tx.placeholder = "할 일 " + (i+1);
+    cb.addEventListener("change", function(){
+      item.d = cb.checked; row.classList.toggle("done", cb.checked); save();
+    });
+    tx.addEventListener("input", function(){ item.t = tx.value; save(); });
+    row.appendChild(cb); row.appendChild(tx); todosEl.appendChild(row);
+  });
+
+  var logsEl = document.getElementById("logs");
+  function renderLog(entry){
+    var box = document.createElement("div"); box.className = "log";
+    var d = document.createElement("div"); d.className = "date"; d.textContent = entry.date;
+    var tx = document.createElement("input");
+    tx.type = "text"; tx.value = entry.text || "";
+    tx.placeholder = "오늘 한 줄";
+    tx.setAttribute("aria-label", entry.date + " 기록");
+    tx.addEventListener("input", function(){ entry.text = tx.value; save(); });
+    box.appendChild(d); box.appendChild(tx); logsEl.appendChild(box);
+  }
+  state.logs.forEach(renderLog);
+
+  document.getElementById("addLog").addEventListener("click", function(){
+    var last = state.logs[state.logs.length-1].date.split("/");
+    var dt = new Date(2026, parseInt(last[0],10)-1, parseInt(last[1],10)+1);
+    var entry = {date:(dt.getMonth()+1)+"/"+dt.getDate(), text:""};
+    state.logs.push(entry); renderLog(entry); save();
+  });
+  save();
+})();
+</script>
+</body>
+</html>
